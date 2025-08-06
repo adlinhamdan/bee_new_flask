@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><title>Nesting Suitability | BeeNews</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link href="static/style.css" rel="stylesheet">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="bee_weather.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>#map { height: 400px; }</style>
+</head>
+<body>
+  <nav class="navbar navbar-expand-sm navbar-light bg-light p-3 mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/index">BeeNews</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+      <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item"><a class="nav-link" href="/forecast">Forecast</a></li>
+            <li class="nav-item"><a class="nav-link" href="/history">Historical Data</a></li>
+            <li class="nav-item"><a class="nav-link" href="/map">Nesting Suitability</a></li>
+            <li class="nav-item"><a class="nav-link" href="/chat">Intervention</a></li>
+          </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div id="map"></div>
+  <button id="toggle-marker">Marker Mode: OFF</button>
+  <div id="data-container" style="display:none;">
+    <div id="data-table">Loading table...</div>
+  </div>
+
+<script>
+let markerMode = false;
+let pixelData = [];
+let userMarkers = [];
+
+document.getElementById('toggle-marker').onclick = function() {
+  markerMode = !markerMode;
+  this.textContent = "Marker Mode: " + (markerMode ? "ON" : "OFF");
+};
+
+
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+});
+var aspectLayer = L.tileLayer('tiles/tiles_aspect/{z}/{x}/{y}.png', {
+  tms: true, opacity: 0.7, minZoom: 10, maxZoom: 20
+});
+var classLayer = L.tileLayer('tiles/tiles_class/{z}/{x}/{y}.png', {tms: true, opacity: 0.7});
+var bsiLayer = L.tileLayer('tiles/tiles_bsi/{z}/{x}/{y}.png', {tms: true, opacity: 0.7});
+var slopeLayer = L.tileLayer('tiles/tiles_slope/{z}/{x}/{y}.png', {tms: true, opacity: 0.7});
+var logLayer = L.tileLayer('tiles/tiles_suitabilityLog/{z}/{x}/{y}.png', {tms: true, opacity: 0.7});
+
+var map = L.map('map', {
+  center: [43.3371, -90.8220],
+  zoom: 16,
+  minZoom: 14,
+  maxZoom: 20,
+  layers: [osm, aspectLayer]
+});
+
+var baseMaps = { "OpenStreetMap": osm };
+var overlayMaps = {
+  "Class": classLayer,
+  "BSI (1–100)": bsiLayer,
+  "Slope (1–100)": slopeLayer,
+  "Aspect (1–100)": aspectLayer,
+  "Suitability Log": logLayer
+};
+
+L.control.scale({imperial: false}).addTo(map);
+L.control.layers(baseMaps, overlayMaps, {collapsed: false, position: 'topleft'}).addTo(map);
+
+map.fitBounds([[43.3015, -90.7156], [43.3727, -90.9285]]);
+map.locate({setView: true, maxZoom: 20});
+
+map.on('locationfound', function(e) {
+  L.marker(e.latlng).addTo(map).bindPopup('You are here!').openPopup();
+});
+
+map.on('locationerror', function(e) {
+  alert('Could not get your location.');
+});
+
+// Pixel data load
+Papa.parse('/pixel_values_cleaned.csv', {
+  download: true, header: true, dynamicTyping: true,
+  complete: function(results) { pixelData = results.data; }
+});
+
+function findNearestPixel(lat, lon) {
+  let minDist = Infinity, nearest = null;
+  for (let i = 0; i < pixelData.length; i++) {
+    let dx = lat - pixelData[i].lat, dy = lon - pixelData[i].lon;
+    let dist = dx*dx + dy*dy;
+    if (dist < minDist) { minDist = dist; nearest = pixelData[i]; }
+  }
+  return nearest;
+}
+
+// SINGLE click handler (no duplicate)
+map.on('click', function(e) {
+  let lat = e.latlng.lat;
+  let lon = e.latlng.lng;
+  let pixel = findNearestPixel(lat, lon);
+  let info = '';
+  if (pixel) {
+    info = Object.entries(pixel)
+      .map(([key, val]) => `<b>${key}</b>: ${val}`)
+      .join('<br>');
+  } else {
+    info = "No data for this location";
+  }
+
+  // Show pixel popup at click location
+  L.popup().setLatLng([lat, lon]).setContent(info).openOn(map);
+
+  // Only add marker if markerMode is ON
+  if (markerMode) {
+    const marker = L.marker([lat, lon]).addTo(map);
+    userMarkers.push(marker);
+
+    // Add delete button to marker popup
+    const btnId = 'delete-btn-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    const popupContent = `
+      <b>Pinned Location</b><br>
+      Lat: ${lat.toFixed(5)}<br>
+      Lng: ${lon.toFixed(5)}<br>
+      <button id="${btnId}" class="delete-marker-btn">Delete Pin</button>
+    `;
+    marker.bindPopup(popupContent);
+
+    marker.on('popupopen', function() {
+      setTimeout(() => {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+          btn.onclick = function() {
+            map.removeLayer(marker);
+            userMarkers = userMarkers.filter(m => m !== marker);
+          };
+        }
+      }, 0);
+    });
+
+    marker.openPopup();
+  }
+});
+</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="js/map.js"></script>
+</body>
+</html>

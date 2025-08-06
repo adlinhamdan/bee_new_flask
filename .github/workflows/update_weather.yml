@@ -1,0 +1,38 @@
+name: Daily Weather Update
+
+permissions:
+  contents: write
+
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # every day at 6am UTC
+  workflow_dispatch:     # allow manual trigger too
+
+jobs: #force refresh
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas
+
+      - name: Run weather update script
+        run: python update_weather.py
+
+      - name: Commit & Push if data changed
+        run: |
+          git config --global user.name 'Jenifer-Qin'
+          git config --global user.email 'jqin53@wisc.edu'
+          git add data/
+          git diff --cached --quiet || git commit -m "Auto-update weather data"
+          git push
