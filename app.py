@@ -22,6 +22,10 @@ def index():
 def forecast():
     return render_template('forecast.html')
 
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
 @app.route('/history')
 def history():
     return render_template('history.html')
