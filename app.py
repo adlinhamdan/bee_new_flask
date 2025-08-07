@@ -1,19 +1,17 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify
-from openai import OpenAI
 from flask_cors import CORS
+import requests
 
 # Load env variables (make sure .env file has OPENAI_API_KEY=sk-xxxx)
 load_dotenv()
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+AGENTIVE_API_KEY = os.environ.get("AGENTIVE_API_KEY") 
+AGENTIVE_ASSISTANT_ID = os.environ.get("AGENTIVE_ASSISTANT_ID") 
 
 app = Flask(__name__)
 CORS(app)
-
-# Create OpenAI client (new API)
-client = OpenAI(api_key=OPENAI_API_KEY)
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -38,21 +36,57 @@ def chat():
 def map():
     return render_template('map.html')
 
+
+def get_chat_session():
+    resp = requests.post(
+        'https://agentivehub.com/api/chat/session',
+        json={
+            "api_key": AGENTIVE_API_KEY,
+            "assistant_id": AGENTIVE_ASSISTANT_ID,
+        }
+    )
+    resp.raise_for_status()
+    return resp.json()["session_id"]
+
 @app.route("/api", methods=["POST"])
 def api():
     message = request.json.get("message")
+    if not message:
+        return jsonify({"response": "No message provided."}), 400
+
     try:
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "user", "content": message}
-            ]
-        )
-        response_text = completion.choices[0].message.content
-        return jsonify({"response": response_text})
+        session_id = get_chat_session()
     except Exception as e:
-        print("OpenAI error:", e)  # This will print the exact error in your terminal
-        return jsonify({"response": f"Failed to generate response! {str(e)}"}), 500
+        print("AgentiveHub session error:", e)
+        return jsonify({"response": f"Failed to get chat session! {str(e)}"}), 500
+
+    try:
+        chat_payload = {
+            "api_key": AGENTIVE_API_KEY,
+            "session_id": session_id,
+            "type": "custom_code",
+            "assistant_id": AGENTIVE_ASSISTANT_ID,
+            "messages": [{"role": "user", "content": message}]
+        }
+        chat_resp = requests.post(
+            'https://agentivehub.com/api/chat',
+            json=chat_payload
+        )
+        chat_resp.raise_for_status()
+        reply = chat_resp.json()
+        print("AGENTIVE RAW REPLY:", reply)   # <--- Add this line
+
+
+        # Adjust this if AgentiveHub's response structure is different
+        agentive_reply = reply.get("content", "No reply received.")
+        return jsonify({"response": agentive_reply})
+
+    except Exception as e:
+        print("AgentiveHub chat error:", e)
+        return jsonify({"response": f"Failed to get response! {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(port=9000)
+    
+    
+
