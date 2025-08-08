@@ -1,4 +1,4 @@
-function sendMessage() {
+function sendMessage() { 
   const message = messageInput.value.trim();
 
   if (message !== "") {
