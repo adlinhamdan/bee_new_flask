@@ -70,7 +70,7 @@
         return;
       }
 
-      fetch("data/bee_history.csv")
+      fetch("static/data/bee_history.csv")
         .then(res => res.text())
         .then(csvText => {
           const rows = csvText.trim().split('\n');

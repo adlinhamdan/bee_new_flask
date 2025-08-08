@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><title>Historical Data | BeeNews</title>
+  <meta charset="UTF-8">
+  <title>7‑Day Forecast | BeeNews</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="static/style.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <nav class="navbar navbar-expand-sm navbar-light bg-light p-3 mb-4">
@@ -15,7 +17,7 @@
         </button>
         <div class="collapse navbar-collapse" id="mainNav">
           <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="/forecast">Forecast</a></li>
+            <li class="nav-item"><a class="nav-link active" href="/forecast">Forecast</a></li>
             <li class="nav-item"><a class="nav-link" href="/history">Historical Data</a></li>
             <li class="nav-item"><a class="nav-link" href="/map">Nesting Suitability</a></li>
             <li class="nav-item"><a class="nav-link" href="/chat">Intervention</a></li>
@@ -24,32 +26,19 @@
     </div>
   </nav>
 
-  <!-- Main content -->
   <div class="container mt-4">
-    <div class="card p-4">
-      <h3>Historical Bee Activity</h3>
-      <p>Select a date range to review past bee activity.</p>
-      <div class="row g-2">
-        <div class="col-md-5">
-          <input type="date" id="startDate" class="form-control">
-        </div>
-        <div class="col-md-5">
-          <input type="date" id="endDate" class="form-control">
-        </div>
-        <div class="col-md-2">
-          <button id="loadHist" class="btn btn-eco w-100">Load</button>
-        </div>
-      </div>
-
-       <table class="table mt-3" id="historyTable">
-        <thead>
+    <div class="card p-4 shadow-sm">
+      <h3>🐝 7‑Day Weather Forecast</h3>
+      <p class="text-muted">This is the predicted weather and bee activity. Plan your pollination!</p>
+      <table class="table mt-3 table-bordered table-hover" id="forecastTable">
+        <thead class="table-light">
           <tr>
             <th>Date</th>
-            <th>Temp (°C)</th>
+            <th>Temp min/max (°C)</th>
+            <th>Rain (mm)</th>
             <th>Wind (m/s)</th>
-            <th>Precip. (mm)</th>
             <th>Sunshine (min)</th>
-            <th>Activity</th>
+            <th>Bee Activity</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -57,75 +46,42 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
-    document.getElementById("loadHist").addEventListener("click", () => {
-      const start = document.getElementById("startDate").value;
-      const end = document.getElementById("endDate").value;
-      const tbody = document.querySelector("#historyTable tbody");
+    async function loadForecastCSV() {
+      try {
+        const response = await fetch('static/data/bee_forecast.csv?v=' + new Date().getTime());
+        const csvText = await response.text();
 
-      if (!start || !end) {
-        alert("Please select both start and end dates.");
-        return;
-      }
+        const parsed = Papa.parse(csvText, { header: true });
+        const data = parsed.data.filter(row => row.date); // remove empty rows
 
-      fetch("data/bee_history.csv")
-        .then(res => res.text())
-        .then(csvText => {
-          const rows = csvText.trim().split('\n');
-          const header = rows[0].split(',').map(h => h.trim());
+        const tbody = document.querySelector('#forecastTable tbody');
+        tbody.innerHTML = '';
 
-
-          const indexMap = {
-            date: header.indexOf('date'),
-            tmax: header.indexOf('TMAX_C'),
-            tmin: header.indexOf('TMIN_C'),
-            wind: header.indexOf('WIND_m_s'),
-            prcp: header.indexOf('PRCP_mm'),
-            sun: header.indexOf('SUN_min'),
-            activity: header.indexOf('Bee_Activity')
-          };
-
-          const data = rows.slice(1).map(line => {
-            const cols = line.split(',');
-            return {
-              date: cols[indexMap.date],
-              tmax: cols[indexMap.tmax],
-              tmin: cols[indexMap.tmin],
-              wind: cols[indexMap.wind],
-              prcp: cols[indexMap.prcp],
-              sun: cols[indexMap.sun],
-              activity: cols[indexMap.activity]
-            };
-          });
-
-          const filtered = data.filter(row => row.date >= start && row.date <= end);
-          tbody.innerHTML = "";
-
-          if (filtered.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='6'>No data available for this range.</td></tr>";
-          } else {
-            filtered.forEach(row => {
-              const tr = document.createElement("tr");
-              const tempDisplay = `${row.tmax}°C / ${row.tmin}°C`;
-              tr.innerHTML = `
-                <td>${row.date}</td>
-                <td>${tempDisplay}</td>
-                <td>${row.wind}</td>
-                <td>${row.prcp}</td>
-                <td>${row.sun}</td>
-                <td>${row.activity}</td>`;
-              tbody.appendChild(tr);
-            });
-          }
-        })
-        .catch(err => {
-          console.error("Error loading history:", err);
-          tbody.innerHTML = "<tr><td colspan='6'>Error loading data.</td></tr>";
+        data.forEach(row => {
+          const tempDisplay = `${row.TMIN_C}°C / ${row.TMAX_C}°C`;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.date}</td>
+            <td>${tempDisplay}</td>
+            <td>${row.PRCP_mm}</td>
+            <td>${row.WIND_m_s}</td>
+            <td>${row.SUN_min}</td>
+            <td>${row.Bee_Activity}</td>
+          `;
+          tbody.appendChild(tr);
         });
-    });
+      } catch (err) {
+        console.error('❌ Error loading CSV:', err);
+        const tbody = document.querySelector('#forecastTable tbody');
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger">Failed to load forecast data.</td></tr>`;
+      }
+    }
+
+    window.onload = loadForecastCSV;
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 <footer style="text-align:center; margin-top: 2em; font-size: 0.9em; color: #666;">
   <p>
