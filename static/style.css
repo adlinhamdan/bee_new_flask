@@ -14,3 +14,18 @@ body {
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
   }
   .navbar-brand { font-weight: bold; color: #2f7d32 !important; }
+
+  .bot-icon, .user-icon {
+    width: 32px;        /* Slightly larger for sharpness on high-DPI screens */
+    height: 32px;
+    min-width: 30px;    /* Prevents shrinking on flexbox edge cases */
+    min-height: 30px;
+    max-width: 36px;
+    max-height: 36px;
+    border-radius: 50%;
+    object-fit: cover;  /* Ensures the image is fully inside the circle */
+    margin-right: 10px;
+    box-shadow: 0 1px 4px rgba(100,140,100,0.06);
+    vertical-align: middle;  /* Align with text better */
+  }
+  
