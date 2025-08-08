@@ -1,0 +1,123 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    display: flex;
+    font-family: sans-serif;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #f9f9f9;
+    .navbar-brand { font-weight: bold; color: #2f7d32 !important; }
+  }
+  
+  nav.navbar {
+    flex: 0 0 auto;
+    z-index: 2000;
+    color: #2f7d32 !important;
+  }
+  
+  /* Main map fills all space below navbar */
+  #map {
+    flex: 1 1 auto;
+    height: calc(100vh - 70px); /* Adjust 70px to match your navbar height */
+    min-height: 300px;
+    width: 100vw;
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    background: #e8f5e9;
+  }
+  
+  /* Make sure page content (map etc) never causes scrollbars unless needed */
+  body, #map {
+    overflow: hidden;
+  }
+  
+  /* Marker toggle button floats on map like Leaflet controls */
+  #toggle-marker {
+    position: absolute;
+    top: 106px;  /* This will place it below zoom/layer controls, adjust if needed */
+    left: 50px;
+    z-index: 1001;
+    background: #fff;
+    color: #222;
+    border: 1px solid #bbb;
+    border-radius: 4px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.13);
+    padding: 8px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    min-width: 130px;
+    text-align: center;
+    transition: background 0.15s, color 0.15s, border 0.15s;
+  }
+  
+  #toggle-marker:hover, #toggle-marker:focus {
+    background: #f4f4f4;
+    color: #388e3c;
+    border-color: #388e3c;
+  }
+  
+  /* Data panel on map (if you use it) */
+  #data-container {
+    display: none;
+    position: absolute;
+    top: 80px;
+    right: 24px;
+    width: 410px;
+    background: #fff;
+    border: 1px solid #cfcfcf;
+    border-radius: 0.7em;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.11);
+    z-index: 1002;
+    font-size: 1em;
+    padding: 12px;
+    overflow: auto;
+  }
+  
+  /* Table styles inside data panel */
+  #data-table {
+    overflow-x: auto;
+    width: 100%;
+  }
+  #data-table table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background: #f9f9f9;
+  }
+  #data-table th, #data-table td {
+    border: 1px solid #d0d0d0;
+    padding: 6px 4px;
+    text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 110px;
+    font-size: 0.97em;
+  }
+  
+  /* Responsive: shrink data panel and button on mobile */
+  @media (max-width: 900px) {
+    #data-container { width: 95vw; right: 2vw; }
+  }
+  @media (max-width: 600px) {
+    #toggle-marker { top: 54px; left: 6px; padding: 7px 10px; font-size: 0.98em;}
+    #data-container { top: 54px; right: 1vw; }
+    #map { height: calc(100vh - 58px); }
+  }
+  
+  /* Utility: never let the map overflow nav */
+  .navbar {
+    position: relative;
+    z-index: 2000;
+  }
+  

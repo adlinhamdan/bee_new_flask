@@ -1,0 +1,98 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: sans-serif;
+  background: #f9f9f9;
+  min-height: 100vh;
+  height: 100%;
+}
+
+.bee-map-main, .map-container {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+#map {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  z-index: 1;
+  position: relative;
+}
+
+/* Marker toggle button INSIDE map, floating top left */
+#toggle-marker {
+  position: absolute;
+  top: 106px;            /* place below the +/− and layers controls */
+  left: 50px;
+  z-index: 1001;
+  background: #fff;
+  color: #222;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.13);
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 1;
+  cursor: pointer;
+  min-width: 120px;
+  text-align: center;
+  transition: background 0.18s, color 0.18s;
+}
+
+#toggle-marker:hover,
+#toggle-marker:focus {
+  background: #f4f4f4;
+  color: #388e3c;
+  border-color: #388e3c;
+}
+
+
+/* Other containers (optional, if you have popup data etc) */
+#data-container {
+  position: absolute;
+  top: 70px;
+  right: 24px;
+  width: 420px;
+  background: white;
+  overflow: auto;
+  z-index: 1002;
+  font-size: 0.97em;
+  border: 1px solid #cfcfcf;
+  padding: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.13);
+  border-radius: 0.7em;
+  display: none;
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  #data-container { width: 95vw; right: 2vw; }
+}
+@media (max-width: 600px) {
+  #toggle-marker {
+    padding: 8px 13px;
+    font-size: 1em;
+    top: 10px; left: 10px;
+  }
+  #map { height: 100vh; }
+  #data-container { top: 56px; right: 1vw; }
+}
